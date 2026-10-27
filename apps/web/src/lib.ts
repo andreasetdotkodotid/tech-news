@@ -9,4 +9,4 @@ export async function getArticles(page = 1, query = '', source = '', category = 
  const [count] = await sql<{ total: number }[]>`SELECT count(*)::int AS total FROM articles a JOIN sources s ON s.id=a.source_id WHERE (${query} = '' OR a.title ILIKE ${'%' + query + '%'}) AND (${source} = '' OR s.slug=${source}) AND (${category} = '' OR EXISTS (SELECT 1 FROM article_categories ac JOIN categories c ON c.id=ac.category_id WHERE ac.article_id=a.id AND c.slug=${category}))`;
  return { articles, total: count.total };
 }
-export async function filters() { return { sources: await sql`SELECT slug, name FROM sources WHERE active ORDER BY name`, categories: await sql`SELECT slug, name FROM categories ORDER BY name` }; }
+export async function filters(): Promise<{ sources: FilterOption[]; categories: FilterOption[] }> { return { sources: await sql<FilterOption[]>`SELECT slug, name FROM sources WHERE active ORDER BY name`, categories: await sql<FilterOption[]>`SELECT slug, name FROM categories ORDER BY name` }; }

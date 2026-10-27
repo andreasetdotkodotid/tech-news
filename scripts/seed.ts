@@ -14,6 +14,10 @@ const sources = [
  ['CNCF Blog','cncf','https://www.cncf.io/feed/','https://www.cncf.io/blog/'],
  ['Google SRE','google-sre','https://sre.google/rss/','https://sre.google/'],
 ];
-for (const name of categories) await sql`INSERT INTO categories (slug, name) VALUES (${name.toLowerCase()}, ${name}) ON CONFLICT (slug) DO NOTHING`;
-for (const [name, slug, feedUrl, homepageUrl] of sources) await sql`INSERT INTO sources (name, slug, feed_url, homepage_url) VALUES (${name}, ${slug}, ${feedUrl}, ${homepageUrl}) ON CONFLICT (slug) DO UPDATE SET feed_url = EXCLUDED.feed_url, homepage_url = EXCLUDED.homepage_url`;
-await sql.end();
+async function main() {
+  for (const name of categories) await sql`INSERT INTO categories (slug, name) VALUES (${name.toLowerCase()}, ${name}) ON CONFLICT (slug) DO NOTHING`;
+  for (const [name, slug, feedUrl, homepageUrl] of sources) await sql`INSERT INTO sources (name, slug, feed_url, homepage_url) VALUES (${name}, ${slug}, ${feedUrl}, ${homepageUrl}) ON CONFLICT (slug) DO UPDATE SET feed_url = EXCLUDED.feed_url, homepage_url = EXCLUDED.homepage_url`;
+  await sql.end();
+}
+
+void main();
