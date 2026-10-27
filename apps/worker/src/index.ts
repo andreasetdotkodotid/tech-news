@@ -1,19 +1,21 @@
 import { CronJob } from 'cron';
 import postgres from 'postgres';
 import { normalizeArticle } from './normalize.js';
-import { RssProvider } from './providers.js';
+import { NvdApiProvider, RssProvider } from './providers.js';
 
 const sql = postgres(process.env.DATABASE_URL ?? '');
 const log = (event: string, data: Record<string, unknown> = {}) => console.log(JSON.stringify({ level: 'info', event, timestamp: new Date().toISOString(), ...data }));
 async function retry<T>(action: () => Promise<T>, attempts = 3): Promise<T> { let error: unknown; for (let i = 0; i < attempts; i++) try { return await action(); } catch (caught) { error = caught; await new Promise((r) => setTimeout(r, 500 * 2 ** i)); } throw error; }
 
 export async function sync(): Promise<void> {
-  const sources = await sql`SELECT id, name, feed_url FROM sources WHERE active = true AND provider = 'rss'`;
-  const provider = new RssProvider();
+  const sources = await sql`SELECT id, name, feed_url, provider FROM sources WHERE active = true AND provider IN ('rss', 'nvd-api')`;
+  const rssProvider = new RssProvider();
+  const nvdProvider = new NvdApiProvider();
   for (const source of sources) {
     const [run] = await sql`INSERT INTO sync_runs (source_id, status) VALUES (${source.id}, 'running') RETURNING id`;
     let seen = 0, added = 0;
     try {
+      const provider = source.provider === 'nvd-api' ? nvdProvider : rssProvider;
       const items = await retry(() => provider.fetch(source.feed_url)); seen = items.length;
       for (const item of items) {
         const article = normalizeArticle(item, source.name); if (!article) continue;

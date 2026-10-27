@@ -28,4 +28,24 @@ export class RssProvider implements FeedProvider {
   }
 }
 
+type NvdResponse = { vulnerabilities?: Array<{ cve?: { id?: string; published?: string; descriptions?: Array<{ lang?: string; value?: string }> } }> };
+
+export class NvdApiProvider implements FeedProvider {
+  async fetch(apiUrl: string): Promise<FeedItem[]> {
+    const url = new URL(apiUrl);
+    const days = Number(process.env.NVD_LOOKBACK_DAYS ?? 30);
+    url.searchParams.set('resultsPerPage', process.env.NVD_RESULTS_PER_PAGE ?? '2000');
+    url.searchParams.set('pubStartDate', new Date(Date.now() - days * 86400000).toISOString());
+    url.searchParams.set('pubEndDate', new Date().toISOString());
+    const response = await fetch(url, { signal: AbortSignal.timeout(Number(process.env.FETCH_TIMEOUT_MS ?? 15000)), headers: { 'user-agent': 'TechSecurityNews/1.0 (+https://news.dotko.id)' } });
+    if (!response.ok) throw new Error(`NVD API request failed: ${response.status}`);
+    const data = await response.json() as NvdResponse;
+    return (data.vulnerabilities ?? []).flatMap(({ cve }) => {
+      if (!cve?.id || !cve.published) return [];
+      const description = cve.descriptions?.find((item) => item.lang === 'en')?.value ?? `Security vulnerability ${cve.id}`;
+      return [{ title: `${cve.id}: ${description}`, url: `https://nvd.nist.gov/vuln/detail/${cve.id}`, publishedAt: cve.published, categories: ['Cybersecurity'] }];
+    });
+  }
+}
+
 export class XApiProvider implements FeedProvider { async fetch(): Promise<FeedItem[]> { throw new Error('X API provider is not configured'); } }
