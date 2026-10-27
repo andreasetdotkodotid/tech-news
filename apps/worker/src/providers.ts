@@ -34,10 +34,10 @@ export class NvdApiProvider implements FeedProvider {
   async fetch(apiUrl: string): Promise<FeedItem[]> {
     const url = new URL(apiUrl);
     const days = Number(process.env.NVD_LOOKBACK_DAYS ?? 30);
-    url.searchParams.set('resultsPerPage', process.env.NVD_RESULTS_PER_PAGE ?? '2000');
+    url.searchParams.set('resultsPerPage', process.env.NVD_RESULTS_PER_PAGE ?? '200');
     url.searchParams.set('pubStartDate', new Date(Date.now() - days * 86400000).toISOString());
     url.searchParams.set('pubEndDate', new Date().toISOString());
-    const response = await fetch(url, { signal: AbortSignal.timeout(Number(process.env.FETCH_TIMEOUT_MS ?? 15000)), headers: { 'user-agent': 'TechSecurityNews/1.0 (+https://news.dotko.id)' } });
+    const response = await fetch(url, { signal: AbortSignal.timeout(Number(process.env.NVD_TIMEOUT_MS ?? process.env.FETCH_TIMEOUT_MS ?? 15000)), headers: { 'user-agent': 'TechSecurityNews/1.0 (+https://news.dotko.id)' } });
     if (!response.ok) throw new Error(`NVD API request failed: ${response.status}`);
     const data = await response.json() as NvdResponse;
     return (data.vulnerabilities ?? []).flatMap(({ cve }) => {
