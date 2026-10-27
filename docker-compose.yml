@@ -1,0 +1,31 @@
+services:
+  web:
+    image: ${IMAGE:-tech-security-news}:${IMAGE_TAG:-latest}
+    build: .
+    env_file: .env
+    command: node apps/web/dist/server/entry.mjs
+    ports: ["127.0.0.1:${WEB_PORT:-4321}:4321"]
+    depends_on: { postgres: { condition: service_healthy } }
+    restart: unless-stopped
+    healthcheck: { test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4321/tech-and-security/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"], interval: 30s, timeout: 5s, retries: 3 }
+  worker:
+    image: ${IMAGE:-tech-security-news}:${IMAGE_TAG:-latest}
+    env_file: .env
+    command: node --import tsx apps/worker/src/index.ts
+    depends_on: { postgres: { condition: service_healthy } }
+    restart: unless-stopped
+  postgres:
+    image: postgres:16-alpine
+    env_file: .env
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    restart: unless-stopped
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"], interval: 10s, timeout: 5s, retries: 5 }
+  backup:
+    image: postgres:16-alpine
+    env_file: .env
+    environment: { PGHOST: postgres, PGUSER: ${POSTGRES_USER:-technews}, PGPASSWORD: ${POSTGRES_PASSWORD:-change-me}, PGDATABASE: ${POSTGRES_DB:-technews} }
+    volumes: ["${BACKUP_HOST_DIR:-./backups}:/backups"]
+    command: ["sh", "-c", "while true; do pg_dump -Fc > /backups/technews-$$(date +%F).dump && find /backups -type f -mtime +$${BACKUP_RETENTION_DAYS:-14} -delete; sleep 86400; done"]
+    depends_on: { postgres: { condition: service_healthy } }
+    restart: unless-stopped
+volumes: { postgres_data: {} }

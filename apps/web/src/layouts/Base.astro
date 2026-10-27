@@ -1,0 +1,5 @@
+---
+import '../styles/global.css';
+const { title = 'Tech & Security News' } = Astro.props;
+---
+<!doctype html><html lang="id"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width"/><meta name="description" content="Aggregator tautan berita teknologi, keamanan, cloud, Linux, dan SRE."/><title>{title}</title></head><body><header class="border-b bg-white"><nav class="mx-auto flex max-w-6xl items-center justify-between p-4" aria-label="Navigasi utama"><a class="font-bold text-slate-900 no-underline" href={import.meta.env.BASE_URL}>Tech &amp; Security News</a><a href={`${import.meta.env.BASE_URL}about`}>Tentang</a></nav></header><main class="mx-auto max-w-6xl p-4"><slot /></main><footer class="mx-auto max-w-6xl p-4 text-sm text-slate-600">Metadata dan tautan saja. Konten merupakan milik sumber asal.</footer></body></html>

@@ -1,0 +1,9 @@
+node_modules
+.env
+.env.*
+!.env.example
+dist
+.astro
+coverage
+backups
+npm-debug.log*

@@ -1,0 +1,16 @@
+---
+import Base from '../layouts/Base.astro';
+import { filters, getArticles, type ArticleResult, type FilterOption } from '../lib';
+const page = Math.max(1, Number(Astro.url.searchParams.get('page') ?? 1));
+const q = (Astro.url.searchParams.get('q') ?? '').slice(0, 120);
+const source = (Astro.url.searchParams.get('source') ?? '').slice(0, 80);
+const category = (Astro.url.searchParams.get('category') ?? '').slice(0, 80);
+let data: ArticleResult = { articles: [], total: 0 };
+let options: { sources: FilterOption[]; categories: FilterOption[] } = { sources: [], categories: [] };
+let error = false;
+try { [data, options] = await Promise.all([getArticles(page, q, source, category), filters()]); } catch { error = true; }
+const makeUrl = (target: number) => `${import.meta.env.BASE_URL}?${new URLSearchParams({ ...(q && { q }), ...(source && { source }), ...(category && { category }), page: String(target) })}`;
+---
+<Base><section class="mb-8"><h1 class="text-3xl font-bold">Berita untuk system administrator</h1><p class="mt-2 text-slate-600">AI, cloud, Linux, cybersecurity, Kubernetes, DevOps, dan SRE dari sumber resmi.</p></section>
+<form class="mb-6 grid gap-3 rounded-lg border bg-white p-4 md:grid-cols-4" method="get" aria-label="Filter berita"><input class="rounded border p-2" name="q" value={q} placeholder="Cari judul"/><select class="rounded border p-2" name="source"><option value="">Semua sumber</option>{options.sources.map((item) => <option value={item.slug} selected={source === item.slug}>{item.name}</option>)}</select><select class="rounded border p-2" name="category"><option value="">Semua kategori</option>{options.categories.map((item) => <option value={item.slug} selected={category === item.slug}>{item.name}</option>)}</select><button class="rounded bg-slate-900 p-2 font-medium text-white" type="submit">Terapkan</button></form>
+{error ? <p class="rounded border border-red-300 bg-red-50 p-4">Data sementara tidak tersedia. Silakan coba lagi.</p> : data.articles.length === 0 ? <p class="rounded border bg-white p-6">Belum ada berita yang cocok. Worker akan memperbarui feed secara berkala.</p> : <><p class="mb-3 text-sm text-slate-600">{data.total} artikel</p><ol class="grid gap-4">{data.articles.map((article) => <li><article class="rounded-lg border bg-white p-5 shadow-sm"><div class="mb-2 flex flex-wrap gap-2 text-xs text-slate-600"><span>{article.source_name}</span><span aria-hidden="true">•</span><time datetime={article.published_at}>{new Date(article.published_at).toLocaleDateString('id-ID', { dateStyle: 'medium' })}</time>{article.categories.map((name) => <span class="rounded bg-slate-100 px-2 py-1">{name}</span>)}</div><h2 class="text-lg font-semibold"><a href={article.canonical_url} target="_blank" rel="noopener noreferrer">{article.title}</a></h2><a class="mt-3 inline-block text-sm font-medium" href={article.canonical_url} target="_blank" rel="noopener noreferrer">Baca sumber<span class="sr-only">: {article.title}</span></a></article></li>)}</ol><nav class="mt-6 flex gap-3" aria-label="Pagination">{page > 1 && <a class="rounded border bg-white px-3 py-2" href={makeUrl(page - 1)}>Sebelumnya</a>}{page * 20 < data.total && <a class="rounded border bg-white px-3 py-2" href={makeUrl(page + 1)}>Muat lebih banyak</a>}</nav></>}</Base>

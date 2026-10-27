@@ -1,0 +1,29 @@
+{
+  "name": "@tech-news/web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "lint": "astro check",
+    "typecheck": "astro check"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.4",
+    "@astrojs/node": "^9.0.0",
+    "@astrojs/tailwind": "^5.1.0",
+    "@astrojs/sitemap": "^3.2.1",
+    "@astrojs/react": "^3.6.2",
+    "astro": "^5.1.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "postgres": "^3.4.5",
+    "tailwindcss": "^3.4.16"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "eslint": "^9.16.0",
+    "typescript": "^5.7.2"
+  }
+}
