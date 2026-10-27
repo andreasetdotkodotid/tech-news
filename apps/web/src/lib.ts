@@ -1,5 +1,5 @@
 import postgres from 'postgres';
-const sql = postgres(import.meta.env.DATABASE_URL);
+const sql = postgres(process.env.DATABASE_URL ?? '');
 export type Article = { id: number; title: string; canonical_url: string; published_at: string; source_name: string; source_slug: string; categories: string[] };
 export type FilterOption = { slug: string; name: string };
 export type ArticleResult = { articles: Article[]; total: number };

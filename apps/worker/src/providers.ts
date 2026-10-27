@@ -2,8 +2,18 @@ import { XMLParser } from 'fast-xml-parser';
 import type { FeedItem } from './normalize.js';
 
 export interface FeedProvider { fetch(feedUrl: string): Promise<FeedItem[]>; }
-const parser = new XMLParser({ ignoreAttributes: false, removeNSPrefix: true });
-const text = (value: unknown): string => typeof value === 'string' ? value : typeof value === 'object' && value && '#text' in value ? String(value['#text']) : '';
+const parser = new XMLParser({ ignoreAttributes: false, removeNSPrefix: true, processEntities: false, htmlEntities: true, stopNodes: ['*.description', '*.content'] });
+const text = (value: unknown): string => typeof value === 'string' ? value : typeof value === 'number' ? String(value) : typeof value === 'object' && value && '#text' in value ? String(value['#text']) : '';
+const first = (value: unknown): unknown => Array.isArray(value) ? value[0] : value;
+const link = (value: unknown): string => {
+  const candidate = first(value);
+  if (typeof candidate === 'string') return candidate;
+  if (candidate && typeof candidate === 'object') {
+    const record = candidate as Record<string, unknown>;
+    return text(record['@_href'] ?? record.href ?? record['#text']);
+  }
+  return '';
+};
 
 export class RssProvider implements FeedProvider {
   async fetch(feedUrl: string): Promise<FeedItem[]> {
@@ -12,8 +22,8 @@ export class RssProvider implements FeedProvider {
     const data = parser.parse(await response.text());
     const entries = data.rss?.channel?.item ?? data.feed?.entry ?? [];
     return (Array.isArray(entries) ? entries : [entries]).map((entry: Record<string, unknown>) => ({
-      title: text(entry.title), url: typeof entry.link === 'object' && entry.link ? String((entry.link as Record<string, unknown>)['@_href'] ?? '') : text(entry.link ?? entry.guid),
-      publishedAt: text(entry.pubDate ?? entry.published ?? entry.updated), categories: (Array.isArray(entry.category) ? entry.category : [entry.category]).filter(Boolean).map(text),
+      title: text(entry.title), url: link(entry.link) || text(entry.guid),
+      publishedAt: text(entry.pubDate ?? entry.published ?? entry.updated), categories: (Array.isArray(entry.category) ? entry.category : [entry.category]).filter(Boolean).map((category) => text(category && typeof category === 'object' ? (category as Record<string, unknown>)['@_term'] ?? category : category)),
     }));
   }
 }
